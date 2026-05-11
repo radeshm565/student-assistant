@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Exam Planner</title>
+
+    <style>
+        body {
+            font-family: "Segoe UI";
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+
+        .container {
+            width: 430px;
+            height: 580px;
+            background: rgba(255,255,255,0.12);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0px 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            padding: 15px;
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            background: rgba(0,0,0,0.2);
+        }
+
+        .chatbox {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .msg {
+            margin: 10px 0;
+            display: flex;
+        }
+
+        .user {
+            justify-content: flex-end;
+        }
+
+        .bot {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            padding: 12px;
+            border-radius: 15px;
+            max-width: 75%;
+            line-height: 1.5;
+        }
+
+        .user .bubble {
+            background: #4facfe;
+            color: white;
+        }
+
+        .bot .bubble {
+            background: white;
+            color: black;
+        }
+
+        .typing {
+            color: white;
+            font-style: italic;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 10px;
+            background: rgba(255,255,255,0.15);
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+        }
+
+        button {
+            margin-left: 6px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #00c9ff;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #0072ff;
+        }
+
+        .download-btn {
+            background: #28a745;
+        }
+
+        .download-btn:hover {
+            background: #1e7e34;
+        }
+
+        .chatbox::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .chatbox::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.4);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        🎓 AI Exam Planner
+    </div>
+
+    <div id="chatbox" class="chatbox"></div>
+
+    <div class="input-area">
+
+        <input type="text"
+               id="userInput"
+               placeholder="days=5; hours=6; OS:proc,threads">
+
+        <button onclick="sendMessage()">Send</button>
+
+        <button class="download-btn"
+                onclick="downloadTimetable()">⬇</button>
+
+    </div>
+
+</div>
+
+<script>
+
+let lastResponse = "";
+
+// Send message
+function sendMessage() {
+
+    let input = document.getElementById("userInput");
+
+    let message = input.value;
+
+    if (message.trim() === "") return;
+
+    let chatbox = document.getElementById("chatbox");
+
+    // User message
+    chatbox.innerHTML += `
+        <div class="msg user">
+            <div class="bubble">${message}</div>
+        </div>
+    `;
+
+    // Typing animation
+    let typingDiv = document.createElement("div");
+
+    typingDiv.className = "msg bot";
+
+    typingDiv.innerHTML =
+    `<div class="bubble typing">Typing...</div>`;
+
+    chatbox.appendChild(typingDiv);
+
+    chatbox.scrollTop = chatbox.scrollHeight;
+
+    fetch("/get", {
+        method: "POST",
+        headers: {
+            "Content-Type":
+            "application/x-www-form-urlencoded"
+        },
+        body: "message=" +
+        encodeURIComponent(message)
+    })
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        lastResponse = data.response;
+
+        // Remove typing animation
+        chatbox.removeChild(typingDiv);
+
+        let formatted =
+        data.response.replace(/\n/g, "<br>");
+
+        // Bot response
+        chatbox.innerHTML += `
+            <div class="msg bot">
+                <div class="bubble">${formatted}</div>
+            </div>
+        `;
+
+        chatbox.scrollTop = chatbox.scrollHeight;
+    });
+
+    input.value = "";
+}
+
+// Download timetable
+function downloadTimetable() {
+
+    if (!lastResponse) {
+        alert("No timetable available!");
+        return;
+    }
+
+    let blob = new Blob(
+        [lastResponse],
+        { type: "text/plain" }
+    );
+
+    let link = document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+
+    link.download = "Exam_Timetable.txt";
+
+    link.click();
+}
+
+</script>
+
+</body>
+</html>
